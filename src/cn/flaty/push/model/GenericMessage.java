@@ -10,6 +10,14 @@ public class GenericMessage {
 		return commond;
 	}
 
+	
+	public GenericMessage(String message) {
+		super();
+		commond = Integer.parseInt(new String(message.substring(0,4)));
+		message = message.substring(4, message.length());
+	}
+
+
 	public void setCommond(int commond) {
 		this.commond = commond;
 	}

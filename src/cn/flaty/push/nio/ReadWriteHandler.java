@@ -9,18 +9,19 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
+import android.util.Log;
 import cn.flaty.push.nio.AcceptHandler.AfterAcceptListener;
 import cn.flaty.push.pushFrame.FrameHead;
 import cn.flaty.push.pushFrame.SimplePushHead;
 import cn.flaty.push.pushFrame.SimplePushInFrame;
 import cn.flaty.push.pushFrame.SimplePushOutFrame;
-import cn.flaty.push.services.PushService;
+import cn.flaty.push.services.Receiveable;
 import cn.flaty.push.utils.ByteBufUtil;
-import cn.flaty.push.utils.LogUtil;
 
 public class ReadWriteHandler implements Runnable {
 
-
+	private static String TAG = "ReadWriteHandler";
+	
 	private FrameHead frameHeader;
 
 	private ByteBuf readBuf;
@@ -55,18 +56,18 @@ public class ReadWriteHandler implements Runnable {
 	/**
 	 * 业务逻辑处理
 	 */
-	private PushService pushService;
+	private Receiveable pushService;
 
 	/**
 	 * nio 事件循环
 	 */
 	private SimpleEventLoop eventLoop;
 
-	public ReadWriteHandler(PushService pushService) {
+	public ReadWriteHandler(Receiveable pushService) {
 		this(pushService, new SimplePushHead());
 	}
 
-	public ReadWriteHandler(PushService pushService, FrameHead frameHeader) {
+	public ReadWriteHandler(Receiveable pushService, FrameHead frameHeader) {
 		super();
 		this.pushService = pushService;
 		this.frameHeader = frameHeader;
@@ -91,7 +92,7 @@ public class ReadWriteHandler implements Runnable {
 			this.write();
 		} catch (Exception e) {
 			this.channelWriteListener.fail();
-			LogUtil.e("---->" + e.getMessage());
+			Log.e(TAG,e.getMessage());
 			e.printStackTrace();
 		}
 
@@ -134,7 +135,7 @@ public class ReadWriteHandler implements Runnable {
 			this.read();
 		} catch (IOException e) {
 			this.channelReadListener.fail();
-			LogUtil.e("---->" + e.getMessage());
+			Log.e(TAG,e.getMessage());
 		}
 
 		// 切包，直到拿到完整的包再纪续执行
@@ -153,7 +154,7 @@ public class ReadWriteHandler implements Runnable {
 			channel.register(selector, SelectionKey.OP_READ);
 		} catch (ClosedChannelException e) {
 			this.afterAcceptListener.fail();
-			LogUtil.e("---->" + e.getMessage());
+			Log.e(TAG,e.getMessage());
 			e.printStackTrace();
 		}
 	}

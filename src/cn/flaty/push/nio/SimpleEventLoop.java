@@ -7,13 +7,17 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 
+import android.util.Log;
 import cn.flaty.push.nio.AcceptHandler.AfterAcceptListener;
 import cn.flaty.push.utils.AssertUtils;
-import cn.flaty.push.utils.LogUtil;
 
 public class SimpleEventLoop {
 
-
+	private static String TAG = "AcceptHandler";
+	
+	private int timeOut;
+	
+	private static int DEFAULTTIMEOUT = 1000;
 
 	private InetSocketAddress socket;
 
@@ -32,8 +36,18 @@ public class SimpleEventLoop {
 	private volatile SelectionKey key;
 
 	public SimpleEventLoop(InetSocketAddress socket) {
+		this(socket,DEFAULTTIMEOUT);
+	}
+
+	/**
+	 * 
+	 * @param socket
+	 * @param timeOut 超时，单位 ms
+	 */
+	public SimpleEventLoop(InetSocketAddress socket,int timeOut) {
 		super();
 		this.socket = socket;
+		this.timeOut = timeOut;
 	}
 
 	public void openChannel() throws IOException {
@@ -44,9 +58,8 @@ public class SimpleEventLoop {
 		channel.configureBlocking(false);
 		// 获得一个通道管理器
 		this.selector = Selector.open();
-		// 客户端连接服务器,其实方法执行并没有实现连接，需要在listen（）方法中调
-		// 用channel.finishConnect();才能完成连接
-		channel.connect(this.socket);
+		// 客户端连接服务器,由于使用非阻塞，故马上返回
+		//channel.connect(this.socket);
 		// 将通道管理器和该通道绑定，并为该通道注册SelectionKey.OP_CONNECT事件。
 		channel.register(selector, SelectionKey.OP_CONNECT);
 
@@ -59,7 +72,7 @@ public class SimpleEventLoop {
 	 */
 	public void eventLoop() throws IOException {
 		// 轮询访问selector
-		while (selector.select() > 0) {
+		while (selector.select(1000) > 0) {
 			// 获得selector中选中的项的迭代器
 			Iterator<SelectionKey> keys = this.selector.selectedKeys()
 					.iterator();
@@ -74,9 +87,9 @@ public class SimpleEventLoop {
 						AfterAcceptListener listener = readWrite
 								.getAfterAcceptListener();
 						try {
-							accept.connect(selector, key);
+							accept.connect(selector, key,this.timeOut);
 						} catch (Exception e) {
-							LogUtil.e("---->"+e.getMessage());
+							Log.e(TAG,"---->"+e.getMessage());
 							clear();
 							listener.fail();
 							return;
