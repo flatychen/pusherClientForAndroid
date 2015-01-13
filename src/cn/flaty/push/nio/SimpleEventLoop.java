@@ -17,7 +17,7 @@ public class SimpleEventLoop {
 	
 	private int timeOut;
 	
-	private static int DEFAULTTIMEOUT = 1000;
+	private static int DEFAULTTIMEOUT = 5000;
 
 	private InetSocketAddress socket;
 
@@ -59,7 +59,7 @@ public class SimpleEventLoop {
 		// 获得一个通道管理器
 		this.selector = Selector.open();
 		// 客户端连接服务器,由于使用非阻塞，故马上返回
-		//channel.connect(this.socket);
+		channel.connect(this.socket);
 		// 将通道管理器和该通道绑定，并为该通道注册SelectionKey.OP_CONNECT事件。
 		channel.register(selector, SelectionKey.OP_CONNECT);
 
