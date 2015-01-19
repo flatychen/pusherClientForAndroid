@@ -3,16 +3,15 @@ package cn.flaty.push.services;
 import android.app.IntentService;
 import android.content.Intent;
 import android.util.Log;
+import cn.flaty.push.PushBootStrap;
 import cn.flaty.push.utils.ApplicationUtil;
 import cn.flaty.push.utils.NetWorkUtil;
 
 public class MessageService extends IntentService {
 
 	private static String TAG = "MessageService";
-	
-	private String host = "192.183.3.178";
-	
-	private int port = 11111;
+
+
 
 	public MessageService() {
 		super("MessageService");
@@ -20,13 +19,14 @@ public class MessageService extends IntentService {
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
-		ApplicationUtil.init(this.getApplicationContext());
-		// 网络已连接
-		if (NetWorkUtil.isNetConnected()) {
-			Log.i(TAG,"开始连接服务器");
-			MessageDispacher dispacher = new MessageDispacher();
-			dispacher.connect(host, port);
-		}
-		
+		Log.i(TAG, "后台service启动");
+		MessageDispacher.getInstance().connect(PushBootStrap.host, PushBootStrap.port);
 	}
+
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		flags = START_STICKY;
+		return super.onStartCommand(intent, flags, startId);
+	}
+
 }

@@ -6,14 +6,21 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import android.content.Intent;
 import android.util.Log;
-import cn.flaty.push.nio.AcceptHandler.AfterAcceptListener;
+import cn.flaty.push.PushBootStrap;
+import cn.flaty.push.nio.ConnectHandler.AfterConnectListener;
 import cn.flaty.push.nio.ReadWriteHandler;
 import cn.flaty.push.nio.ReadWriteHandler.ChannelReadListener;
 import cn.flaty.push.nio.ReadWriteHandler.ChannelWriteListener;
+import cn.flaty.push.nio.SimpleEventLoop;
+import cn.flaty.push.nio.SimpleEventLoop.STATE;
+import cn.flaty.push.utils.ApplicationUtil;
+import cn.flaty.push.utils.NetWorkUtil;
+import cn.flaty.push.utils.ServiceUtil;
 
 public abstract class MessageSupport implements Receiveable {
-	
+
 	private static String TAG = "MessageSupport";
 
 	private static int MAX_RECONNCNT = 3;
@@ -22,7 +29,7 @@ public abstract class MessageSupport implements Receiveable {
 
 	private static int HEART_BEAT_TIME = 5;
 
-	private static int HEART_BEAT_DEPLAY = 5;
+	private static int HEART_BEAT_DEPLAY = 25;
 
 	private ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
 
@@ -38,21 +45,31 @@ public abstract class MessageSupport implements Receiveable {
 		ses.scheduleWithFixedDelay(new Runnable() {
 			@Override
 			public void run() {
-				Log.i(TAG,"~~心跳~~");
-				// readWriteHandler.doWrite("心跳测试");
+				Log.i(TAG, "~~心跳~~");
+				readWriteHandler.doWrite("心跳测试");
 			}
 		}, HEART_BEAT_DEPLAY, HEART_BEAT_TIME, TimeUnit.SECONDS);
 	}
 
 	public void connect(final String host, final int port) {
+		if (NetWorkUtil.isNetConnected()) {
+			Log.i(TAG, "开始连接服务器");
+			this.connect0(host, port);
+		} else {
+			Log.i(TAG, "无网络");
+		}
+	}
 
-		this.readWriteHandler = new ReadWriteHandler(this);
+	public void connect0(final String host, final int port) {
+
+		this.readWriteHandler = ReadWriteHandler.getInstance(this);
 		readWriteHandler.InitEventLoop(host, port);
-		readWriteHandler.setAfterAcceptListener(simpleAfterAcceptListener);
+		readWriteHandler.setAfterConnectListener(simpleAfterConnectListener);
 		readWriteHandler.setChannelReadListener(simpleChannelReadListener);
 		readWriteHandler.setChannelWriteListener(simpleChannelWriteListener);
-		// 异步连接开始
-		es.submit(readWriteHandler);
+		if (SimpleEventLoop.state == STATE.stop) {
+			readWriteHandler.connect(es);
+		}
 
 	}
 
@@ -64,29 +81,31 @@ public abstract class MessageSupport implements Receiveable {
 		System.out.println(msg);
 	}
 
-	private AfterAcceptListener simpleAfterAcceptListener = new AfterAcceptListener() {
+	private AfterConnectListener simpleAfterConnectListener = new AfterConnectListener() {
 		@Override
 		public void success() {
 			readWriteHandler.doWrite(prepareDeviceInfo());
-			// heartBeat();
+			heartBeat();
 		}
 
 		@Override
 		public void fail() {
-			if (reConnCnt++ < MAX_RECONNCNT) {
+			if (reConnCnt++ < MAX_RECONNCNT
+					&& SimpleEventLoop.STATE.connnected != SimpleEventLoop.state) {
 				try {
-					Log.i(TAG,MessageFormat.format(
-							"---->建立连接失败，总共{0}次重试，现重试第{1}次", MAX_RECONNCNT,
-							reConnCnt));
-					Thread.sleep(10000 * reConnCnt);
-					es.submit(readWriteHandler);
+
+					Log.i(TAG, MessageFormat.format("建立连接失败，{0}秒后重试第{1}次",
+							20 * reConnCnt, reConnCnt));
+					Thread.sleep(20000 * reConnCnt);
+					readWriteHandler.connect(es);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-			} else {
-				Log.i(TAG,MessageFormat.format("---->{0}次连接均失败，关闭任务！ ",
+			}
+			if (reConnCnt >= MAX_RECONNCNT) {
+				Log.i(TAG, MessageFormat.format("{0}次连接均失败！停止连接~~ ",
 						MAX_RECONNCNT));
-				es.shutdown();
+				SimpleEventLoop.state = STATE.stop;
 			}
 		}
 	};
@@ -95,7 +114,6 @@ public abstract class MessageSupport implements Receiveable {
 
 		@Override
 		public void success() {
-
 		}
 
 		@Override
@@ -109,7 +127,6 @@ public abstract class MessageSupport implements Receiveable {
 
 		@Override
 		public void success() {
-
 		}
 
 		@Override

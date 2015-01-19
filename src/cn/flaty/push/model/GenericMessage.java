@@ -2,6 +2,9 @@ package cn.flaty.push.model;
 
 public class GenericMessage {
 	
+	
+	public static int text = 100;
+	
 	private int commond;
 	
 	private String message;

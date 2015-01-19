@@ -16,7 +16,7 @@ public class ApplicationUtil{
         if(context == null){
         	context = c;
         }else{
-        	Log.i(TAG,"已经初始化");
+        	Log.i(TAG,context.toString());
         }
     }
     

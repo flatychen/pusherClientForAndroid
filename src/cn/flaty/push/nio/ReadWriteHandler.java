@@ -8,9 +8,11 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.ExecutorService;
 
 import android.util.Log;
-import cn.flaty.push.nio.AcceptHandler.AfterAcceptListener;
+import cn.flaty.push.nio.ConnectHandler.AfterConnectListener;
+import cn.flaty.push.nio.SimpleEventLoop.STATE;
 import cn.flaty.push.pushFrame.FrameHead;
 import cn.flaty.push.pushFrame.SimplePushHead;
 import cn.flaty.push.pushFrame.SimplePushInFrame;
@@ -28,10 +30,6 @@ public class ReadWriteHandler implements Runnable {
 
 	private ByteBuf writeBuf;
 
-	/**
-	 * 连接监听器
-	 */
-	private AfterAcceptListener afterAcceptListener;
 
 	/**
 	 * 读通道监听器
@@ -49,7 +47,7 @@ public class ReadWriteHandler implements Runnable {
 	private Selector selector;
 
 	/**
-	 * socke通道
+	 * socket 通道
 	 */
 	private SocketChannel channel;
 
@@ -62,12 +60,26 @@ public class ReadWriteHandler implements Runnable {
 	 * nio 事件循环
 	 */
 	private SimpleEventLoop eventLoop;
+	
+	private ConnectHandler connectHandler;
 
-	public ReadWriteHandler(Receiveable pushService) {
+	private static volatile ReadWriteHandler readWriteHandler = null;
+
+	public static ReadWriteHandler getInstance(Receiveable pushService) {
+		if (readWriteHandler == null) {
+			synchronized (ReadWriteHandler.class) {
+				readWriteHandler = new ReadWriteHandler(pushService,
+						new SimplePushHead());
+			}
+		}
+		return readWriteHandler;
+	}
+
+	private ReadWriteHandler(Receiveable pushService) {
 		this(pushService, new SimplePushHead());
 	}
 
-	public ReadWriteHandler(Receiveable pushService, FrameHead frameHeader) {
+	private ReadWriteHandler(Receiveable pushService, FrameHead frameHeader) {
 		super();
 		this.pushService = pushService;
 		this.frameHeader = frameHeader;
@@ -75,8 +87,9 @@ public class ReadWriteHandler implements Runnable {
 	}
 
 	public void InitEventLoop(String host, int port) {
+		this.connectHandler = new ConnectHandler();
 		eventLoop = new SimpleEventLoop(new InetSocketAddress(host, port));
-		eventLoop.setAccept(new AcceptHandler());
+		eventLoop.setConnect(connectHandler);
 		eventLoop.setReadWrite(this);
 		this.readBuf = ByteBufUtil.ByteBuf();
 		this.writeBuf = ByteBufUtil.compositBuf();
@@ -91,9 +104,10 @@ public class ReadWriteHandler implements Runnable {
 		try {
 			this.write();
 		} catch (Exception e) {
+			SimpleEventLoop.state = STATE.stop;
 			this.channelWriteListener.fail();
-			Log.e(TAG,e.getMessage());
-			e.printStackTrace();
+			Log.e(TAG,e.toString());
+			return;
 		}
 
 	}
@@ -106,14 +120,16 @@ public class ReadWriteHandler implements Runnable {
 		if (writeBuf.isCompositBuf()) {
 			ByteBuffer buffers[] = writeBuf.nioBuffers();
 			for (ByteBuffer byteBuffer : buffers) {
-				byteToWrite = channel.write(byteBuffer);
-				writeBuf.position(writeBuf.position() + byteToWrite);
+				while(byteBuffer.remaining() > 0){
+					byteToWrite  = channel.write(byteBuffer) + byteToWrite;
+				}
 			}
+			writeBuf.position(writeBuf.position() + byteToWrite);
 		} else {
 			channel.write(writeBuf.nioBuffer());
 		}
-		
-		writeBuf.resetBuf().clear();
+
+		writeBuf.resetBuf();
 	}
 
 	public void read() throws IOException {
@@ -153,7 +169,6 @@ public class ReadWriteHandler implements Runnable {
 		try {
 			channel.register(selector, SelectionKey.OP_READ);
 		} catch (ClosedChannelException e) {
-			this.afterAcceptListener.fail();
 			Log.e(TAG,e.getMessage());
 			e.printStackTrace();
 		}
@@ -231,6 +246,11 @@ public class ReadWriteHandler implements Runnable {
 		this.channel = (SocketChannel) schannel;
 	}
 
+	
+	public void connect(ExecutorService es) {
+		es.submit(this);
+	}
+	
 	@Override
 	public void run() {
 		try {
@@ -258,13 +278,9 @@ public class ReadWriteHandler implements Runnable {
 		this.channelWriteListener = channelWriteListener;
 	}
 
-	public AcceptHandler.AfterAcceptListener getAfterAcceptListener() {
-		return afterAcceptListener;
-	}
-
-	public void setAfterAcceptListener(
-			AcceptHandler.AfterAcceptListener afterAcceptListener) {
-		this.afterAcceptListener = afterAcceptListener;
+	public void setAfterConnectListener(
+			AfterConnectListener afterConnectListener) {
+		this.connectHandler.setAfterConnectListener(afterConnectListener);
 	}
 
 	public static interface ChannelReadListener {

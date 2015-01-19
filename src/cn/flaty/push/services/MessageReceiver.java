@@ -3,16 +3,18 @@ package cn.flaty.push.services;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import cn.flaty.push.PushBootStrap;
 
 public class MessageReceiver extends BroadcastReceiver {
 
-	private static String TAG = "MessageReceiver";
 	
+	private String intentName = "android.net.conn.CONNECTIVITY_CHANGE";
 	
 	@Override
 	public void onReceive(Context context, Intent intent) {
-		Intent intent2 = new Intent(context, MessageService.class);
-		context.startService(intent2);
+		if(intent.getAction().equals(intentName)){
+			PushBootStrap.getInstance().start(context);
+		}
 	}
 
 

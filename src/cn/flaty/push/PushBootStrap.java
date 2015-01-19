@@ -2,8 +2,11 @@ package cn.flaty.push;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
+import cn.flaty.push.services.MessageDispacher;
 import cn.flaty.push.services.MessageService;
 import cn.flaty.push.utils.ApplicationUtil;
+import cn.flaty.push.utils.ServiceUtil;
 
 /**
  * 推送启动器
@@ -12,14 +15,17 @@ import cn.flaty.push.utils.ApplicationUtil;
  * 
  */
 public class PushBootStrap {
-	
 
-	/**
-	 * 使用CAS
-	 */
-	private static volatile PushBootStrap push;
+	public static final String host = "192.183.3.178";
+
+	public static final int port = 11111;
 	
-	private PushBootStrap() {}
+	private static String TAG = "PushBootStrap";
+
+	private static volatile PushBootStrap push;
+
+	private PushBootStrap() {
+	}
 
 	public static PushBootStrap getInstance() {
 		// cas 比较
@@ -31,20 +37,27 @@ public class PushBootStrap {
 		return push;
 	}
 
-	
-
 	public void start(Context applicationContext) {
-		this.init(applicationContext);
+		this.connServer(applicationContext);
 	}
-	
-	private void init(Context context){
-		ApplicationUtil.init(context);
-		this.connServer();
+
+
+	/**
+	 * 连接服务器
+	 */
+	private void connServer(Context applicationContext) {
+		
+		ApplicationUtil.init(applicationContext.getApplicationContext());
+		
+		// 检测是否启动
+		if (ServiceUtil.isServiceRunning(ApplicationUtil.getContext(),
+				"cn.flaty.services.MessageService")) {
+			MessageDispacher.getInstance().connect(PushBootStrap.host, PushBootStrap.port);
+		} else {
+			Intent intent = new Intent(ApplicationUtil.getContext(),
+					MessageService.class);
+			ApplicationUtil.getContext().startService(intent);
+		}
 	}
-	
-	private void connServer() {
-		Intent intent = new Intent(ApplicationUtil.getContext(),MessageService.class);
-		ApplicationUtil.getContext().startService(intent);
-	}
-	
+
 }

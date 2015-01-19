@@ -8,43 +8,46 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 
 import android.util.Log;
-import cn.flaty.push.nio.AcceptHandler.AfterAcceptListener;
+
 import cn.flaty.push.utils.AssertUtils;
 
 public class SimpleEventLoop {
 
-	private static String TAG = "AcceptHandler";
-	
+	private static String TAG = "SimpleEventLoop";
+
+	public enum STATE {
+		stop, connecting, connnected
+	}
+
+	public static volatile SimpleEventLoop.STATE state = STATE.stop;
+
 	private int timeOut;
-	
+
 	private static int DEFAULTTIMEOUT = 5000;
 
 	private InetSocketAddress socket;
-
-	/**
-	 * accept
-	 */
-	private AcceptHandler accept;
-
-	/**
-	 * io handlers
-	 */
+	
+	private ConnectHandler connect;
+	
 	private ReadWriteHandler readWrite;
 
 	private volatile Selector selector;
 
 	private volatile SelectionKey key;
 
+	private volatile SocketChannel channel;
+
 	public SimpleEventLoop(InetSocketAddress socket) {
-		this(socket,DEFAULTTIMEOUT);
+		this(socket, DEFAULTTIMEOUT);
 	}
 
 	/**
 	 * 
 	 * @param socket
-	 * @param timeOut 超时，单位 ms
+	 * @param timeOut
+	 *            超时，单位 ms
 	 */
-	public SimpleEventLoop(InetSocketAddress socket,int timeOut) {
+	public SimpleEventLoop(InetSocketAddress socket, int timeOut) {
 		super();
 		this.socket = socket;
 		this.timeOut = timeOut;
@@ -53,26 +56,26 @@ public class SimpleEventLoop {
 	public void openChannel() throws IOException {
 		this.validate();
 		// 获得一个Socket通道
-		SocketChannel channel = SocketChannel.open();
+		channel = SocketChannel.open();
 		// 设置通道为非阻塞
-		channel.configureBlocking(false);
+		// channel.configureBlocking(false);
 		// 获得一个通道管理器
 		this.selector = Selector.open();
-		// 客户端连接服务器,由于使用非阻塞，故马上返回
-		channel.connect(this.socket);
-		// 将通道管理器和该通道绑定，并为该通道注册SelectionKey.OP_CONNECT事件。
-		channel.register(selector, SelectionKey.OP_CONNECT);
+		this.initReadWriteHandler();
 
 	}
 
 	/**
-	 * FIXME cancle write key bug?
 	 * 
 	 * @throws IOException
 	 */
 	public void eventLoop() throws IOException {
+		// 开始连接
+		if (!this.connect.connect(selector, channel, socket, timeOut)) {
+			return;
+		}
 		// 轮询访问selector
-		while (selector.select(1000) > 0) {
+		while (selector.select(100) > 0) {
 			// 获得selector中选中的项的迭代器
 			Iterator<SelectionKey> keys = this.selector.selectedKeys()
 					.iterator();
@@ -82,33 +85,16 @@ public class SimpleEventLoop {
 				keys.remove();
 
 				if (key.isValid()) {
-					if (key.isConnectable()) {
-					// 连接事件
-						AfterAcceptListener listener = readWrite
-								.getAfterAcceptListener();
-						try {
-							accept.connect(selector, key,this.timeOut);
-						} catch (Exception e) {
-							Log.e(TAG,"---->"+e.getMessage());
-							clear();
-							listener.fail();
-							return;
-						}
-
-						this.initReadWriteHandler();
-						listener.success();
-						
-
-					} else if (key.isReadable()) {
-					// 可读事件	
+					if (key.isReadable()) {
+						// 可读事件
 						readWrite.doRead(key);
 					}
 
-//					else if (key.isWritable()) {
-//						key.cancel();
-//					
-//
-//					}
+					// else if (key.isWritable()) {
+					// key.cancel();
+					//
+					//
+					// }
 
 				}
 
@@ -119,31 +105,51 @@ public class SimpleEventLoop {
 
 	private void initReadWriteHandler() {
 		this.readWrite.setSelector(selector);
-		this.readWrite.setChannel(key.channel());
+		this.readWrite.setChannel(channel);
 	}
 
 	private void validate() {
-		AssertUtils.notNull(accept, "----> accept 属性不能主空");
+		AssertUtils.notNull(connect, "----> connect 属性不能主空");
 		AssertUtils.notNull(readWrite, "----> readWrite 属性不能主空");
 
 	}
 
-	public void setAccept(AcceptHandler accept) {
-		this.accept = accept;
-	}
 
-	public void setReadWrite(ReadWriteHandler readWrite) {
-		this.readWrite = readWrite;
-	}
-
-
-	
-	private void clear(){
-		key.cancel();
+	/**
+	 * 
+	 * 清理资源
+	 * 
+	 * @param selector
+	 * @param channel
+	 * @param key
+	 * @author flatychen
+	 */
+	public static void clearUp(Selector selector, SocketChannel channel,
+			SelectionKey key) {
+		if (key != null) {
+			key.cancel();
+		}
 		try {
+			channel.close();
 			selector.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public ConnectHandler getConnect() {
+		return connect;
+	}
+
+	public void setConnect(ConnectHandler connect) {
+		this.connect = connect;
+	}
+
+	public ReadWriteHandler getReadWrite() {
+		return readWrite;
+	}
+
+	public void setReadWrite(ReadWriteHandler readWrite) {
+		this.readWrite = readWrite;
 	}
 }
