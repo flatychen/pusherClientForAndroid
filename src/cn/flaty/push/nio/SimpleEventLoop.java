@@ -75,7 +75,7 @@ public class SimpleEventLoop {
 			return;
 		}
 		// 轮询访问selector
-		while (selector.select(100) > 0) {
+		while (selector.select() > 0) {
 			// 获得selector中选中的项的迭代器
 			Iterator<SelectionKey> keys = this.selector.selectedKeys()
 					.iterator();

@@ -45,8 +45,8 @@ public abstract class MessageSupport implements Receiveable {
 		ses.scheduleWithFixedDelay(new Runnable() {
 			@Override
 			public void run() {
-				Log.i(TAG, "~~心跳~~");
-				readWriteHandler.doWrite("心跳测试");
+				//Log.i(TAG, "~~心跳~~");
+				//readWriteHandler.doWrite("心跳测试");
 			}
 		}, HEART_BEAT_DEPLAY, HEART_BEAT_TIME, TimeUnit.SECONDS);
 	}

@@ -38,16 +38,23 @@ public class PushBootStrap {
 	}
 
 	public void start(Context applicationContext) {
+		// init something
+		ApplicationUtil.init(applicationContext.getApplicationContext());
+		
+		
+		// connect
 		this.connServer(applicationContext);
 	}
 
 
+	
+	
 	/**
 	 * 连接服务器
 	 */
 	private void connServer(Context applicationContext) {
 		
-		ApplicationUtil.init(applicationContext.getApplicationContext());
+		
 		
 		// 检测是否启动
 		if (ServiceUtil.isServiceRunning(ApplicationUtil.getContext(),

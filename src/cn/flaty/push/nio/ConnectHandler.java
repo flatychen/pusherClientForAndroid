@@ -13,7 +13,7 @@ import cn.flaty.push.nio.SimpleEventLoop.STATE;
 
 public class ConnectHandler {
 
-	private static String TAG = "AcceptHandler";
+	private static String TAG = "ConnectHandler";
 
 	private AfterConnectListener afterConnectListener;
 

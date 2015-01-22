@@ -21,7 +21,8 @@ public class NetWorkUtil {
 		WIFI, MOBILE, NONE
 	}
 
-	private static Context context = ApplicationUtil.getContext();
+	
+	
 
 	/**
 	 * 判断当前网络连接是否为手机网
@@ -30,7 +31,7 @@ public class NetWorkUtil {
 	 * @return
 	 */
 	public static boolean isMobileConnected() {
-		ConnectivityManager manager = (ConnectivityManager) context
+		ConnectivityManager manager = (ConnectivityManager) ApplicationUtil.getContext()
 				.getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo gprs = manager
 				.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
@@ -45,8 +46,8 @@ public class NetWorkUtil {
 	 * @return
 	 */
 	public static boolean isWifiConnected() {
-		if (context != null) {
-			ConnectivityManager mConnectivityManager = (ConnectivityManager) context
+		if (ApplicationUtil.getContext() != null) {
+			ConnectivityManager mConnectivityManager = (ConnectivityManager) ApplicationUtil.getContext()
 					.getSystemService(Context.CONNECTIVITY_SERVICE);
 			NetworkInfo mWiFiNetworkInfo = mConnectivityManager
 					.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
@@ -64,8 +65,8 @@ public class NetWorkUtil {
 	 * @return
 	 */
 	public static boolean isNetConnected() {
-		if (context != null) {
-			ConnectivityManager mConnectivityManager = (ConnectivityManager) context
+		if (ApplicationUtil.getContext() != null) {
+			ConnectivityManager mConnectivityManager = (ConnectivityManager) ApplicationUtil.getContext()
 					.getSystemService(Context.CONNECTIVITY_SERVICE);
 			NetworkInfo mNetworkInfo = mConnectivityManager
 					.getActiveNetworkInfo();
@@ -84,7 +85,7 @@ public class NetWorkUtil {
 	 * @return {@link netType}
 	 */
 	public static NetType getNetType() {
-		ConnectivityManager connMgr = (ConnectivityManager) context
+		ConnectivityManager connMgr = (ConnectivityManager) ApplicationUtil.getContext()
 				.getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
 		if (networkInfo == null) {
