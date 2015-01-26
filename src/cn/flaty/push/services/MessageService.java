@@ -22,6 +22,8 @@ public class MessageService extends IntentService {
 		Log.i(TAG, "后台service启动");
 		// init something
 		ApplicationUtil.init(this.getApplicationContext());
+		
+		
 		MessageDispacher.getInstance().connect(PushBootStrap.host, PushBootStrap.port);
 	}
 

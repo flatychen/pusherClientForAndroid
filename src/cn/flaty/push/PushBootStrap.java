@@ -55,7 +55,6 @@ public class PushBootStrap {
 	private void connServer(Context applicationContext) {
 		
 		
-		
 		// 检测是否启动
 		if (ServiceUtil.isServiceRunning(ApplicationUtil.getContext(),
 				"cn.flaty.services.MessageService")) {

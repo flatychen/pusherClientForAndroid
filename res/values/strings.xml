@@ -1,7 +1,0 @@
-<resources>
-
-    <string name="app_name">flatyPush</string>
-    <string name="action_settings">Settings</string>
-    <string name="hello_world">Push Test !</string>
-    <string name="token">显示token</string>
-</resources>

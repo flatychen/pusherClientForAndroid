@@ -176,7 +176,6 @@ public class ReadWriteHandler implements Runnable {
 
 	/**
 	 * 
-	 * FIXME 扩展buf
 	 * 
 	 * @return
 	 */
@@ -233,7 +232,7 @@ public class ReadWriteHandler implements Runnable {
 
 		byte[] frame = new byte[bytesToRead];
 		readBuf.get(frame);
-		readBuf = readBuf.resetBuf().clear();
+		readBuf = readBuf.resetBuf();
 		return frame;
 
 	}
@@ -254,6 +253,7 @@ public class ReadWriteHandler implements Runnable {
 	@Override
 	public void run() {
 		try {
+			Thread.currentThread().setName("push-nio");
 			eventLoop.openChannel();
 			eventLoop.eventLoop();
 		} catch (IOException e) {
