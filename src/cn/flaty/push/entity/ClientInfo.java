@@ -1,4 +1,4 @@
-package cn.flaty.push.model;
+package cn.flaty.push.entity;
 
 
 public class ClientInfo {

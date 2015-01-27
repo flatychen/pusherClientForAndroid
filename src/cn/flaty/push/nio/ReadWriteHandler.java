@@ -105,8 +105,9 @@ public class ReadWriteHandler implements Runnable {
 			this.write();
 		} catch (Exception e) {
 			SimpleEventLoop.state = STATE.stop;
+			SimpleEventLoop.clearUp(selector, channel, channel.keyFor(selector));
+			Log.e(TAG,"doWrite fail!"+e.toString());
 			this.channelWriteListener.fail();
-			Log.e(TAG,e.toString());
 			return;
 		}
 
@@ -150,8 +151,18 @@ public class ReadWriteHandler implements Runnable {
 		try {
 			this.read();
 		} catch (IOException e) {
+			SimpleEventLoop.state = STATE.stop;
+			SimpleEventLoop.clearUp(selector, channel, key);
+			Log.e(TAG,"doRead fail!"+e.getMessage());
 			this.channelReadListener.fail();
-			Log.e(TAG,e.getMessage());
+		}
+		
+		// 处理 tcp 强制断开连接 rst
+		if(readBuf.position() == 0){
+			SimpleEventLoop.state = STATE.stop;
+			SimpleEventLoop.clearUp(selector, channel, key);
+			Log.e(TAG,"服务器端重置连接");
+			this.channelReadListener.fail();
 		}
 
 		// 切包，直到拿到完整的包再纪续执行
@@ -166,12 +177,12 @@ public class ReadWriteHandler implements Runnable {
 		// 业务逻辑处理
 		pushService.receiveMsg(s);
 
-		try {
-			channel.register(selector, SelectionKey.OP_READ);
-		} catch (ClosedChannelException e) {
-			Log.e(TAG,e.getMessage());
-			e.printStackTrace();
-		}
+//		try {
+//			channel.register(selector, SelectionKey.OP_READ);
+//		} catch (ClosedChannelException e) {
+//			Log.e(TAG,e.getMessage());
+//			e.printStackTrace();
+//		}
 	}
 
 	/**
