@@ -1,10 +1,14 @@
 package cn.flaty.push.services;
 
 import java.text.MessageFormat;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import android.content.Intent;
 import android.util.Log;
@@ -25,23 +29,27 @@ public abstract class MessageSupport implements Receiveable {
 
 	private static int MAX_RECONNCNT = 3;
 
-	private int reConnCnt = 0;
+	private  AtomicInteger connCount = null;
 
 	private static int HEART_BEAT_TIME = 5;
 
 	private static int HEART_BEAT_DEPLAY = 25;
 
-	private ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
+	private ScheduledExecutorService ses = null;
 
-	private ExecutorService es = Executors.newFixedThreadPool(1);
+	private ExecutorService es = null;
+	
+	private Future<Integer> nioEvent;
 
 	private ReadWriteHandler readWriteHandler;
 
 	public MessageSupport() {
 		super();
+		this.es = Executors.newFixedThreadPool(1);
 	}
 
 	private void heartBeat() {
+		ses = Executors.newScheduledThreadPool(1);
 		ses.scheduleWithFixedDelay(new Runnable() {
 			@Override
 			public void run() {
@@ -57,19 +65,19 @@ public abstract class MessageSupport implements Receiveable {
 			Log.i(TAG, "开始连接服务器");
 			this.connect0(host, port);
 		} else {
-			Log.i(TAG, "无网络");
+			Log.i(TAG, "无网络连接");
 		}
 	}
 
 	public void connect0(final String host, final int port) {
-
+		this.connCount = new AtomicInteger(0);
 		this.readWriteHandler = ReadWriteHandler.getInstance(this);
 		readWriteHandler.InitEventLoop(host, port);
 		readWriteHandler.setAfterConnectListener(simpleAfterConnectListener);
 		readWriteHandler.setChannelReadListener(simpleChannelReadListener);
 		readWriteHandler.setChannelWriteListener(simpleChannelWriteListener);
 		if (SimpleEventLoop.state == STATE.stop) {
-			readWriteHandler.connect(es);
+			nioEvent = readWriteHandler.connect(es);
 		}
 
 	}
@@ -91,19 +99,19 @@ public abstract class MessageSupport implements Receiveable {
 
 		@Override
 		public void fail() {
-			if (reConnCnt++ < MAX_RECONNCNT
+			if (connCount.incrementAndGet() <= MAX_RECONNCNT
 					&& SimpleEventLoop.STATE.connnected != SimpleEventLoop.state) {
 				try {
 
 					Log.i(TAG, MessageFormat.format("建立连接失败，{0}秒后重试第{1}次",
-							20 * reConnCnt, reConnCnt));
-					Thread.sleep(20000 * reConnCnt);
-					readWriteHandler.connect(es);
+							20 * connCount.get(), connCount.get()));
+					Thread.sleep(20000 * connCount.get());
+					nioEvent = readWriteHandler.connect(es);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
-			if (reConnCnt >= MAX_RECONNCNT) {
+			if (connCount.get() > MAX_RECONNCNT) {
 				Log.i(TAG, MessageFormat.format("{0}次连接均失败！停止连接~~ ",
 						MAX_RECONNCNT));
 				SimpleEventLoop.state = STATE.stop;
@@ -119,8 +127,8 @@ public abstract class MessageSupport implements Receiveable {
 
 		@Override
 		public void fail() {
+			nioEvent.cancel(true);
 			ses.shutdownNow();
-			es.shutdownNow();
 		}
 	};
 
@@ -132,8 +140,8 @@ public abstract class MessageSupport implements Receiveable {
 
 		@Override
 		public void fail() {
-			ses.shutdown();
-			es.shutdown();
+			nioEvent.cancel(true);
+			ses.shutdownNow();
 		}
 	};
 

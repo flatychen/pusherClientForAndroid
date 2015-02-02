@@ -8,7 +8,9 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import android.util.Log;
 import cn.flaty.push.nio.ConnectHandler.AfterConnectListener;
@@ -20,16 +22,15 @@ import cn.flaty.push.pushFrame.SimplePushOutFrame;
 import cn.flaty.push.services.Receiveable;
 import cn.flaty.push.utils.ByteBufUtil;
 
-public class ReadWriteHandler implements Runnable {
+public class ReadWriteHandler implements Callable<Integer> {
 
 	private static String TAG = "ReadWriteHandler";
-	
+
 	private FrameHead frameHeader;
 
 	private ByteBuf readBuf;
 
 	private ByteBuf writeBuf;
-
 
 	/**
 	 * 读通道监听器
@@ -60,7 +61,7 @@ public class ReadWriteHandler implements Runnable {
 	 * nio 事件循环
 	 */
 	private SimpleEventLoop eventLoop;
-	
+
 	private ConnectHandler connectHandler;
 
 	private static volatile ReadWriteHandler readWriteHandler = null;
@@ -96,8 +97,7 @@ public class ReadWriteHandler implements Runnable {
 	}
 
 	public void doWrite(String msg) {
-		SimplePushOutFrame frame = new SimplePushOutFrame(frameHeader,
-				msg.getBytes());
+		SimplePushOutFrame frame = new SimplePushOutFrame(frameHeader, msg);
 		writeBuf.put(frame.getLength());
 		writeBuf.put(frame.getHead());
 		writeBuf.put(frame.getBody());
@@ -105,24 +105,23 @@ public class ReadWriteHandler implements Runnable {
 			this.write();
 		} catch (Exception e) {
 			SimpleEventLoop.state = STATE.stop;
-			SimpleEventLoop.clearUp(selector, channel, channel.keyFor(selector));
-			Log.e(TAG,"doWrite fail!"+e.toString());
+			SimpleEventLoop
+					.clearUp(selector, channel, channel.keyFor(selector));
+			Log.e(TAG, "doWrite fail!" + e.toString());
 			this.channelWriteListener.fail();
 			return;
 		}
 
 	}
 
-	
-	
 	public void write() throws IOException {
 		writeBuf.flip();
 		int byteToWrite = 0;
 		if (writeBuf.isCompositBuf()) {
 			ByteBuffer buffers[] = writeBuf.nioBuffers();
 			for (ByteBuffer byteBuffer : buffers) {
-				while(byteBuffer.remaining() > 0){
-					byteToWrite  = channel.write(byteBuffer) + byteToWrite;
+				while (byteBuffer.remaining() > 0) {
+					byteToWrite = channel.write(byteBuffer) + byteToWrite;
 				}
 			}
 			writeBuf.position(writeBuf.position() + byteToWrite);
@@ -144,7 +143,7 @@ public class ReadWriteHandler implements Runnable {
 		} else {
 			byteToRead = channel.read(readBuf.nioBuffer());
 		}
-		
+
 	}
 
 	public void doRead(SelectionKey key) {
@@ -153,15 +152,15 @@ public class ReadWriteHandler implements Runnable {
 		} catch (IOException e) {
 			SimpleEventLoop.state = STATE.stop;
 			SimpleEventLoop.clearUp(selector, channel, key);
-			Log.e(TAG,"doRead fail!"+e.getMessage());
+			Log.e(TAG, "doRead fail!" + e.getMessage());
 			this.channelReadListener.fail();
 		}
-		
+
 		// 处理 tcp 强制断开连接 rst
-		if(readBuf.position() == 0){
+		if (readBuf.position() == 0) {
 			SimpleEventLoop.state = STATE.stop;
 			SimpleEventLoop.clearUp(selector, channel, key);
-			Log.e(TAG,"服务器端重置连接");
+			Log.e(TAG, "服务器端重置连接");
 			this.channelReadListener.fail();
 		}
 
@@ -177,12 +176,12 @@ public class ReadWriteHandler implements Runnable {
 		// 业务逻辑处理
 		pushService.receiveMsg(s);
 
-//		try {
-//			channel.register(selector, SelectionKey.OP_READ);
-//		} catch (ClosedChannelException e) {
-//			Log.e(TAG,e.getMessage());
-//			e.printStackTrace();
-//		}
+		// try {
+		// channel.register(selector, SelectionKey.OP_READ);
+		// } catch (ClosedChannelException e) {
+		// Log.e(TAG,e.getMessage());
+		// e.printStackTrace();
+		// }
 	}
 
 	/**
@@ -256,19 +255,15 @@ public class ReadWriteHandler implements Runnable {
 		this.channel = (SocketChannel) schannel;
 	}
 
-	
-	public void connect(ExecutorService es) {
-		es.submit(this);
-	}
-	
-	@Override
-	public void run() {
+	@SuppressWarnings("finally")
+	public Future<Integer> connect(ExecutorService es) {
+		Future<Integer> f = null;
 		try {
-			Thread.currentThread().setName("push-nio");
-			eventLoop.openChannel();
-			eventLoop.eventLoop();
-		} catch (IOException e) {
+			f = es.submit(this);
+		} catch (Exception e) {
 			e.printStackTrace();
+		} finally {
+			return f;
 		}
 	}
 
@@ -305,4 +300,18 @@ public class ReadWriteHandler implements Runnable {
 
 		void fail();
 	}
+
+	@Override
+	public Integer call() throws Exception {
+		try {
+			Thread.currentThread().setName("push-nio");
+			eventLoop.openChannel();
+			eventLoop.eventLoop();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return 1;
+		}
+		return 0;
+	}
+
 }

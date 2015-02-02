@@ -7,8 +7,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 
-import android.util.Log;
-
 import cn.flaty.push.utils.AssertUtils;
 
 public class SimpleEventLoop {
@@ -19,16 +17,16 @@ public class SimpleEventLoop {
 		stop, connecting, connnected
 	}
 
-	public static volatile SimpleEventLoop.STATE state = STATE.stop;
+	public static volatile  SimpleEventLoop.STATE state = STATE.stop;
 
 	private int timeOut;
 
-	private static int DEFAULTTIMEOUT = 5000;
+	private static int DEFAULTTIMEOUT = 3000;
 
 	private InetSocketAddress socket;
-	
+
 	private ConnectHandler connect;
-	
+
 	private ReadWriteHandler readWrite;
 
 	private volatile Selector selector;
@@ -41,12 +39,6 @@ public class SimpleEventLoop {
 		this(socket, DEFAULTTIMEOUT);
 	}
 
-	/**
-	 * 
-	 * @param socket
-	 * @param timeOut
-	 *            超时，单位 ms
-	 */
 	public SimpleEventLoop(InetSocketAddress socket, int timeOut) {
 		super();
 		this.socket = socket;
@@ -58,21 +50,21 @@ public class SimpleEventLoop {
 		// 获得一个Socket通道
 		channel = SocketChannel.open();
 		// 设置通道为非阻塞
-		// channel.configureBlocking(false);
+		//channel.configureBlocking(false);
 		// 获得一个通道管理器
 		this.selector = Selector.open();
 		this.initReadWriteHandler();
-
 	}
 
-	/**
-	 * 
-	 * @throws IOException
-	 */
+	public void setConnect(ConnectHandler connect) {
+		this.connect = connect;
+	}
+
 	public void eventLoop() throws IOException {
+		
 		// 开始连接
-		if (!this.connect.connect(selector, channel, socket, timeOut)) {
-			return;
+		if(!this.connect.connect(selector, channel, socket, timeOut)){
+			return ;
 		}
 		// 轮询访问selector
 		while (selector.select() > 0) {
@@ -85,8 +77,10 @@ public class SimpleEventLoop {
 				keys.remove();
 
 				if (key.isValid()) {
+
+					// 可读事件
 					if (key.isReadable()) {
-						// 可读事件
+
 						readWrite.doRead(key);
 					}
 
@@ -103,29 +97,34 @@ public class SimpleEventLoop {
 		}
 	}
 
+	
+	
+	
+	
 	private void initReadWriteHandler() {
 		this.readWrite.setSelector(selector);
 		this.readWrite.setChannel(channel);
 	}
 
 	private void validate() {
-		AssertUtils.notNull(connect, "----> connect 属性不能主空");
-		AssertUtils.notNull(readWrite, "----> readWrite 属性不能主空");
+		AssertUtils.notNull(connect, " connect 属性不能为空");
+		AssertUtils.notNull(readWrite, " readWrite 属性不能为空");
 
 	}
 
-
+	public void setReadWrite(ReadWriteHandler readWrite) {
+		this.readWrite = readWrite;
+	}
+	
 	/**
 	 * 
 	 * 清理资源
-	 * 
 	 * @param selector
 	 * @param channel
 	 * @param key
 	 * @author flatychen
 	 */
-	public static void clearUp(Selector selector, SocketChannel channel,
-			SelectionKey key) {
+	public static void clearUp(Selector selector,SocketChannel channel,SelectionKey key) {
 		if (key != null) {
 			key.cancel();
 		}
@@ -137,19 +136,4 @@ public class SimpleEventLoop {
 		}
 	}
 
-	public ConnectHandler getConnect() {
-		return connect;
-	}
-
-	public void setConnect(ConnectHandler connect) {
-		this.connect = connect;
-	}
-
-	public ReadWriteHandler getReadWrite() {
-		return readWrite;
-	}
-
-	public void setReadWrite(ReadWriteHandler readWrite) {
-		this.readWrite = readWrite;
-	}
 }

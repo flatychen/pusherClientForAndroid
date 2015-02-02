@@ -3,9 +3,9 @@ package cn.flaty.push.pushFrame;
 public interface FrameHead {
 
 	public static enum charset {
-		
-		NULL, US_ASCII, UTF_8, GBK, GB18030
-		
+
+		NULL, US_ASCII, ISO_8859_1,UTF_8,GBK,GB2312
+
 	}
 
 	public static enum encype {

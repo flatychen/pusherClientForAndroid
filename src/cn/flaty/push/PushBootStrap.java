@@ -22,6 +22,8 @@ public class PushBootStrap {
 	
 	private static String TAG = "PushBootStrap";
 
+	private static final String serviceName = "cn.flaty.services.MessageService";
+	
 	private static volatile PushBootStrap push;
 
 	private PushBootStrap() {
@@ -56,8 +58,7 @@ public class PushBootStrap {
 		
 		
 		// 检测是否启动
-		if (ServiceUtil.isServiceRunning(ApplicationUtil.getContext(),
-				"cn.flaty.services.MessageService")) {
+		if (this.checkServiceIsRunning()) {
 			MessageDispacher.getInstance().connect(PushBootStrap.host, PushBootStrap.port);
 		} else {
 			Intent intent = new Intent(ApplicationUtil.getContext(),
@@ -66,4 +67,9 @@ public class PushBootStrap {
 		}
 	}
 
+	
+	private boolean checkServiceIsRunning(){
+		return ServiceUtil.isServiceRunning(ApplicationUtil.getContext(),this.serviceName);
+	}
+	
 }

@@ -33,7 +33,6 @@ public class ConnectHandler {
 		try {
 			// 开始连接
 			channel.configureBlocking(false);
-
 			boolean connected = false;
 			channel.connect(socket);
 			while (connecting && !(connected)) {
@@ -59,7 +58,7 @@ public class ConnectHandler {
 		}
 		afterConnectListener.success();
 		SimpleEventLoop.state = STATE.connnected;
-		Log.i(TAG, "连接建立成功");
+		Log.i(TAG, " 连接建立成功");
 		return true;
 
 	}

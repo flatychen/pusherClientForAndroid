@@ -19,6 +19,7 @@ import cn.flaty.push.utils.ByteBufUtil;
  */
 public class CompositByteBuf implements ByteBuf {
 
+
 	private int capacity = 0;
 
 	private int position = 0;
@@ -33,10 +34,11 @@ public class CompositByteBuf implements ByteBuf {
 
 	private List<ByteBuf> buffers;
 
-	public CompositByteBuf() {
-		this(1, ByteBufUtil.ByteBuf());
-	}
 
+	public CompositByteBuf() {
+		this(1, new SimpleByteBuf(ByteBuf.BUFFER_SIZE));
+	}
+	
 	public CompositByteBuf(ByteBuf buf) {
 		this(1, buf);
 	}
@@ -52,7 +54,7 @@ public class CompositByteBuf implements ByteBuf {
 		this.currentBufferIndex = compontSize == 1 ? 0 : 1;
 		this.buffersSize = compontSize;
 		this.position = buf.position();
-		this.capacity = this.limit = compontSize == 1 ? buf.capacity() : BUFFER_SIZE * compontSize + buf.capacity();
+		this.capacity = this.limit = compontSize == 1 ? buf.capacity() : BUFFER_SIZE * (compontSize - 1)+ buf.capacity();
 	}
 
 	private void addCompont(int size) {
@@ -256,5 +258,4 @@ public class CompositByteBuf implements ByteBuf {
 		buf.clear();
 		return buf;
 	}
-
 }

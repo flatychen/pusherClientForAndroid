@@ -20,10 +20,7 @@ public class MessageService extends IntentService {
 	@Override
 	protected void onHandleIntent(Intent intent) {
 		Log.i(TAG, "后台service启动");
-		// init something
 		ApplicationUtil.init(this.getApplicationContext());
-		
-		
 		MessageDispacher.getInstance().connect(PushBootStrap.host, PushBootStrap.port);
 	}
 
