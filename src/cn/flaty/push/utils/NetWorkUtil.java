@@ -1,127 +1,94 @@
 package cn.flaty.push.utils;
 
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Enumeration;
-
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.NetworkInfo.DetailedState;
-import android.util.Log;
+import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 
 public class NetWorkUtil {
-	
-	
-	private ConnectivityManager connManger = null;
-	
-	
-	public static enum NetType {
-		WIFI, MOBILE, NONE
-	}
 
-	
-	
+	public static final String NETWORK_TYPE_WIFI = "wifi";
+	public static final String NETWORK_TYPE_3G = "eg";
+	public static final String NETWORK_TYPE_4G = "4g";
+	public static final String NETWORK_TYPE_2G = "2g";
+	public static final String NETWORK_TYPE_WAP = "wap";
+	public static final String NETWORK_TYPE_UNKNOWN = "unknown";
+	public static final String NETWORK_TYPE_DISCONNECT = "disconnect";
 
-	/**
-	 * 判断当前网络连接是否为手机网
-	 * 
-	 * @param context
-	 * @return
-	 */
-	public static boolean isMobileConnected() {
-		ConnectivityManager manager = (ConnectivityManager) ApplicationUtil.getContext()
+	public static String getNetWorkType(Context context) {
+		ConnectivityManager manager = (ConnectivityManager) context
 				.getSystemService(Context.CONNECTIVITY_SERVICE);
-		NetworkInfo gprs = manager
-				.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-		DetailedState detailedState = gprs.getDetailedState();
-		return DetailedState.CONNECTED == detailedState;
-	}
+		NetworkInfo networkInfo;
+		String type = NETWORK_TYPE_DISCONNECT;
+		if (manager == null
+				|| (networkInfo = manager.getActiveNetworkInfo()) == null) {
+			return type;
+		}
 
-	/**
-	 * 判断当前网络连接是否为wifi
-	 * 
-	 * @param context
-	 * @return
-	 */
-	public static boolean isWifiConnected() {
-		if (ApplicationUtil.getContext() != null) {
-			ConnectivityManager mConnectivityManager = (ConnectivityManager) ApplicationUtil.getContext()
-					.getSystemService(Context.CONNECTIVITY_SERVICE);
-			NetworkInfo mWiFiNetworkInfo = mConnectivityManager
-					.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-			if (mWiFiNetworkInfo != null) {
-				return mWiFiNetworkInfo.isAvailable();
+		if (networkInfo.isConnected()) {
+			String typeName = networkInfo.getTypeName();
+			if ("WIFI".equalsIgnoreCase(typeName)) {
+				type = NETWORK_TYPE_WIFI;
+			} else if ("MOBILE".equalsIgnoreCase(typeName)) {
+				String proxyHost = android.net.Proxy.getDefaultHost();
+				type = TextUtils.isEmpty(proxyHost) ? (isFastMobileNetwork(context) ? NETWORK_TYPE_3G
+						: NETWORK_TYPE_2G)
+						: NETWORK_TYPE_WAP;
+			} else {
+				type = NETWORK_TYPE_UNKNOWN;
 			}
 		}
-		return false;
+		return type;
 	}
 
-	/**
-	 * 判断是否有网络连接
-	 * 
-	 * @param context
-	 * @return
-	 */
-	public static boolean isNetConnected() {
-		if (ApplicationUtil.getContext() != null) {
-			ConnectivityManager mConnectivityManager = (ConnectivityManager) ApplicationUtil.getContext()
-					.getSystemService(Context.CONNECTIVITY_SERVICE);
-			NetworkInfo mNetworkInfo = mConnectivityManager
-					.getActiveNetworkInfo();
-			if (mNetworkInfo != null) {
-				return mNetworkInfo.isAvailable();
-			}
-		}
-		return false;
+	
+	public static boolean isConnected(Context context){
+		return !NetWorkUtil.NETWORK_TYPE_DISCONNECT.equalsIgnoreCase(getNetWorkType(context));
 	}
-
-	/**
-	 * 获取当前的网络类型
-	 * 
-	 * @param context
-	 * 
-	 * @return {@link netType}
-	 */
-	public static NetType getNetType() {
-		ConnectivityManager connMgr = (ConnectivityManager) ApplicationUtil.getContext()
-				.getSystemService(Context.CONNECTIVITY_SERVICE);
-		NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-		if (networkInfo == null) {
-			return NetType.NONE;
+	
+	private static boolean isFastMobileNetwork(Context context) {
+		TelephonyManager telephonyManager = (TelephonyManager) context
+				.getSystemService(Context.TELEPHONY_SERVICE);
+		if (telephonyManager == null) {
+			return false;
 		}
-		int nType = networkInfo.getType();
 
-		if (nType == ConnectivityManager.TYPE_MOBILE) {
-			return NetType.MOBILE;
-		} else if (nType == ConnectivityManager.TYPE_WIFI) {
-			return NetType.WIFI;
+		switch (telephonyManager.getNetworkType()) {
+		case TelephonyManager.NETWORK_TYPE_1xRTT:
+			return false;
+		case TelephonyManager.NETWORK_TYPE_CDMA:
+			return false;
+		case TelephonyManager.NETWORK_TYPE_EDGE:
+			return false;
+		case TelephonyManager.NETWORK_TYPE_EVDO_0:
+			return true;
+		case TelephonyManager.NETWORK_TYPE_EVDO_A:
+			return true;
+		case TelephonyManager.NETWORK_TYPE_GPRS:
+			return false;
+		case TelephonyManager.NETWORK_TYPE_HSDPA:
+			return true;
+		case TelephonyManager.NETWORK_TYPE_HSPA:
+			return true;
+		case TelephonyManager.NETWORK_TYPE_HSUPA:
+			return true;
+		case TelephonyManager.NETWORK_TYPE_UMTS:
+			return true;
+		case TelephonyManager.NETWORK_TYPE_EHRPD:
+			return true;
+		case TelephonyManager.NETWORK_TYPE_EVDO_B:
+			return true;
+		case TelephonyManager.NETWORK_TYPE_HSPAP:
+			return true;
+		case TelephonyManager.NETWORK_TYPE_IDEN:
+			return false;
+		case TelephonyManager.NETWORK_TYPE_LTE:
+			return true;
+		case TelephonyManager.NETWORK_TYPE_UNKNOWN:
+			return false;
+		default:
+			return false;
 		}
-		return NetType.NONE;
-	}
-
-	/**
-	 * 获取IP地址
-	 * 
-	 * @return
-	 */
-	public static String getIpAddress() {
-		try {
-			for (Enumeration<NetworkInterface> en = NetworkInterface
-					.getNetworkInterfaces(); en.hasMoreElements();) {
-				NetworkInterface intf = en.nextElement();
-				for (Enumeration<InetAddress> enumIpAddr = intf
-						.getInetAddresses(); enumIpAddr.hasMoreElements();) {
-					InetAddress inetAddress = enumIpAddr.nextElement();
-					if (!inetAddress.isLoopbackAddress()) {
-						return inetAddress.getHostAddress().toString();
-					}
-				}
-			}
-		} catch (SocketException ex) {
-			Log.e("WifiPreference IpAddress", ex.toString());
-		}
-		return null;
 	}
 }

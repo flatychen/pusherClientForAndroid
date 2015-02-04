@@ -7,6 +7,8 @@ public class GenericMessage {
 	public static int server_push_image = 1025;
 	
 	public static int client_heart = 4096;
+	
+	public static int client_connected = 4097;
 
 	private int commond;
 

@@ -1,8 +1,6 @@
 package cn.flaty.push.services;
 
 import java.text.MessageFormat;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -10,20 +8,28 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import android.content.Intent;
+import org.json.JSONObject;
+import org.json.JSONStringer;
+
+import com.alibaba.fastjson.JSON;
+
+import android.content.Context;
 import android.util.Log;
-import cn.flaty.push.PushBootStrap;
+import cn.flaty.push.entity.ClientInfo;
 import cn.flaty.push.nio.ConnectHandler.AfterConnectListener;
 import cn.flaty.push.nio.ReadWriteHandler;
 import cn.flaty.push.nio.ReadWriteHandler.ChannelReadListener;
 import cn.flaty.push.nio.ReadWriteHandler.ChannelWriteListener;
 import cn.flaty.push.nio.SimpleEventLoop;
 import cn.flaty.push.nio.SimpleEventLoop.STATE;
-import cn.flaty.push.utils.ApplicationUtil;
+import cn.flaty.push.utils.DeviceUtil;
+import cn.flaty.push.utils.DigestUtils;
 import cn.flaty.push.utils.NetWorkUtil;
-import cn.flaty.push.utils.ServiceUtil;
+import cn.flaty.push.utils.PackageUtils;
 
 public abstract class MessageSupport implements Receiveable {
+	
+	protected Context applicationContext;
 
 	private static String TAG = "MessageSupport";
 
@@ -31,9 +37,9 @@ public abstract class MessageSupport implements Receiveable {
 
 	private  AtomicInteger connCount = null;
 
-	private static int HEART_BEAT_TIME = 5;
+	private static int HEART_BEAT_TIME = 25;
 
-	private static int HEART_BEAT_DEPLAY = 25;
+	private static int HEART_BEAT_DEPLAY = 5;
 
 	private ScheduledExecutorService ses = null;
 
@@ -43,8 +49,9 @@ public abstract class MessageSupport implements Receiveable {
 
 	private ReadWriteHandler readWriteHandler;
 
-	public MessageSupport() {
+	public MessageSupport(Context applicationContext) {
 		super();
+		this.applicationContext = applicationContext;
 		this.es = Executors.newFixedThreadPool(1);
 	}
 
@@ -54,14 +61,15 @@ public abstract class MessageSupport implements Receiveable {
 			@Override
 			public void run() {
 				Thread.currentThread().setName("push-heartBeat");
-				//Log.i(TAG, "~~心跳~~");
-				//readWriteHandler.doWrite("心跳测试");
+				ClientInfo ci = new ClientInfo();
+				ci.setDid(DigestUtils.md5(DeviceUtil.getMixDeviceId(applicationContext)));
+				readWriteHandler.doWrite(JSON.toJSONString(ci));
 			}
 		}, HEART_BEAT_DEPLAY, HEART_BEAT_TIME, TimeUnit.SECONDS);
 	}
 
 	public void connect(final String host, final int port) {
-		if (NetWorkUtil.isNetConnected()) {
+		if (NetWorkUtil.isConnected(applicationContext)) {
 			Log.i(TAG, "开始连接服务器");
 			this.connect0(host, port);
 		} else {
@@ -69,8 +77,11 @@ public abstract class MessageSupport implements Receiveable {
 		}
 	}
 
-	public void connect0(final String host, final int port) {
+	private void connect0(final String host, final int port) {
 		this.connCount = new AtomicInteger(0);
+		
+		Log.i(TAG, this.toString());
+		
 		this.readWriteHandler = ReadWriteHandler.getInstance(this);
 		readWriteHandler.InitEventLoop(host, port);
 		readWriteHandler.setAfterConnectListener(simpleAfterConnectListener);
@@ -82,8 +93,13 @@ public abstract class MessageSupport implements Receiveable {
 
 	}
 
+	
 	private String prepareDeviceInfo() {
-		return "开始连接";
+		ClientInfo ci = new ClientInfo();
+		ci.setDid(DigestUtils.md5(DeviceUtil.getMixDeviceId(applicationContext)));
+		ci.setAppVer(PackageUtils.getAppVersionCode(applicationContext));
+		ci.setOs(DeviceUtil.getAndroidVersion());
+		return JSON.toJSONString(ci);
 	}
 
 	protected void sendMsg(String msg) {

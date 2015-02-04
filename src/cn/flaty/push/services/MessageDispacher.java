@@ -2,29 +2,33 @@ package cn.flaty.push.services;
 
 import java.util.Calendar;
 
+import com.alibaba.fastjson.JSON;
+
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import cn.flaty.push.R;
 import cn.flaty.push.entity.GenericMessage;
 import cn.flaty.push.entity.PushMessage;
-import cn.flaty.push.utils.ApplicationUtil;
-
-import com.alibaba.fastjson.JSON;
 
 public final class MessageDispacher extends MessageSupport implements
 		Receiveable {
+
+	private MessageDispacher(Context applicationContext) {
+		super(applicationContext);
+	}
 
 	private static String TAG = "MessageDispacher";
 
 	private static volatile MessageDispacher dispacher;
 
-	public static MessageDispacher getInstance() {
+	public static MessageDispacher getInstance(Context applicationContext) {
 		if (dispacher == null) {
 			synchronized (MessageDispacher.class) {
-				dispacher = new MessageDispacher();
+				dispacher = new MessageDispacher(applicationContext);
 			}
 		}
 		return dispacher;
@@ -57,13 +61,13 @@ public final class MessageDispacher extends MessageSupport implements
 	private Notification bulidPictureNotification(String message) {
 		PushMessage pushMessage = JSON.parseObject(message, PushMessage.class);
 		NotificationCompat.BigPictureStyle style = new NotificationCompat.BigPictureStyle();
-		style.bigPicture(BitmapFactory.decodeResource(ApplicationUtil.getContext().getResources(), R.drawable.logo));
+		style.bigPicture(BitmapFactory.decodeResource(super.applicationContext.getResources(), R.drawable.logo));
 
 		NotificationCompat.Builder build = new NotificationCompat.Builder(
-				ApplicationUtil.getContext());
+				applicationContext);
 		build.setContentTitle(pushMessage.getTitle())
 				.setContentText(pushMessage.getContent())
-				.setSmallIcon(ApplicationUtil.getContext().getApplicationInfo().icon)
+				.setSmallIcon(applicationContext.getApplicationInfo().icon)
 				.setDefaults(pushMessage.getFlag());
 		return build.build();
 		
@@ -72,22 +76,22 @@ public final class MessageDispacher extends MessageSupport implements
 	private Notification bulidBaseNotification(String message) {
 		PushMessage pushMessage = JSON.parseObject(message, PushMessage.class);
 		NotificationCompat.Builder build = new NotificationCompat.Builder(
-				ApplicationUtil.getContext());
+				applicationContext);
 		build.setContentTitle(pushMessage.getTitle())
 				.setContentText(pushMessage.getContent())
-				.setSmallIcon(ApplicationUtil.getContext().getApplicationInfo().icon);
+				.setSmallIcon(applicationContext.getApplicationInfo().icon);
 			//	.setDefaults(pushMessage.getFlags());
 		return build.build();
 	}
 
 
 	private NotificationManager getNotificationManager() {
-		return (NotificationManager) ApplicationUtil.getContext()
+		return (NotificationManager) applicationContext
 				.getSystemService(android.content.Context.NOTIFICATION_SERVICE);
 	}
 
 	private int getNotifyId() {
-		return ApplicationUtil.getContext().getApplicationInfo().icon
+		return applicationContext.getApplicationInfo().icon
 				+ Calendar.getInstance().get(Calendar.MILLISECOND);
 	}
 

@@ -4,8 +4,6 @@ import android.app.IntentService;
 import android.content.Intent;
 import android.util.Log;
 import cn.flaty.push.PushBootStrap;
-import cn.flaty.push.utils.ApplicationUtil;
-import cn.flaty.push.utils.NetWorkUtil;
 
 public class MessageService extends IntentService {
 
@@ -20,8 +18,7 @@ public class MessageService extends IntentService {
 	@Override
 	protected void onHandleIntent(Intent intent) {
 		Log.i(TAG, "后台service启动");
-		ApplicationUtil.init(this.getApplicationContext());
-		MessageDispacher.getInstance().connect(PushBootStrap.host, PushBootStrap.port);
+		MessageDispacher.getInstance(this.getApplicationContext()).connect(PushBootStrap.host, PushBootStrap.port);
 	}
 
 	@Override

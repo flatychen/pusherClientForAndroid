@@ -2,10 +2,8 @@ package cn.flaty.push;
 
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 import cn.flaty.push.services.MessageDispacher;
 import cn.flaty.push.services.MessageService;
-import cn.flaty.push.utils.ApplicationUtil;
 import cn.flaty.push.utils.ServiceUtil;
 
 /**
@@ -15,15 +13,17 @@ import cn.flaty.push.utils.ServiceUtil;
  * 
  */
 public class PushBootStrap {
+	
+	private Context applicationContext = null;
 
 	public static final String host = "192.183.3.178";
 
 	public static final int port = 11111;
-	
+
 	private static String TAG = "PushBootStrap";
 
 	private static final String serviceName = "cn.flaty.services.MessageService";
-	
+
 	private static volatile PushBootStrap push;
 
 	private PushBootStrap() {
@@ -39,37 +39,30 @@ public class PushBootStrap {
 		return push;
 	}
 
-	public void start(Context applicationContext) {
-		// init something
-		ApplicationUtil.init(applicationContext.getApplicationContext());
-		
-		
+	public void start(Context context) {
 		// connect
-		this.connServer(applicationContext);
+		applicationContext = context.getApplicationContext();
+		this.connServer();
 	}
 
-
-	
-	
 	/**
 	 * 连接服务器
 	 */
-	private void connServer(Context applicationContext) {
-		
-		
-		// 检测是否启动
-		if (this.checkServiceIsRunning()) {
-			MessageDispacher.getInstance().connect(PushBootStrap.host, PushBootStrap.port);
-		} else {
-			Intent intent = new Intent(ApplicationUtil.getContext(),
-					MessageService.class);
-			ApplicationUtil.getContext().startService(intent);
-		}
+	private void connServer() {
+
+//		// 检测是否启动
+//		if (this.checkServiceIsRunning()) {
+//			MessageDispacher.getInstance(applicationContext).connect(PushBootStrap.host,
+//					PushBootStrap.port);
+//		} else {
+			Intent intent = new Intent(applicationContext, MessageService.class);
+			applicationContext.startService(intent);
+//		}
 	}
 
-	
-	private boolean checkServiceIsRunning(){
-		return ServiceUtil.isServiceRunning(ApplicationUtil.getContext(),this.serviceName);
+	private boolean checkServiceIsRunning() {
+		return ServiceUtil.isServiceRunning(applicationContext,
+				serviceName);
 	}
-	
+
 }

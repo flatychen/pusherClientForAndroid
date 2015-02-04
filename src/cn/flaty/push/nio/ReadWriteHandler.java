@@ -105,10 +105,8 @@ public class ReadWriteHandler implements Callable<Integer> {
 			this.write();
 		} catch (Exception e) {
 			SimpleEventLoop.state = STATE.stop;
-			SimpleEventLoop
-					.clearUp(selector, channel, channel.keyFor(selector));
-			Log.e(TAG, "doWrite fail!" + e.toString());
 			this.channelWriteListener.fail();
+			Log.e(TAG, e.toString());
 			return;
 		}
 
@@ -128,8 +126,7 @@ public class ReadWriteHandler implements Callable<Integer> {
 		} else {
 			channel.write(writeBuf.nioBuffer());
 		}
-
-		writeBuf.resetBuf();
+		writeBuf = writeBuf.resetBuf();
 	}
 
 	public void read() throws IOException {
@@ -163,7 +160,6 @@ public class ReadWriteHandler implements Callable<Integer> {
 			Log.e(TAG, "服务器端重置连接");
 			this.channelReadListener.fail();
 		}
-
 		// 切包，直到拿到完整的包再纪续执行
 		byte[] frameBytes = this.splitFrame();
 		if (frameBytes == null) {
@@ -239,10 +235,9 @@ public class ReadWriteHandler implements Callable<Integer> {
 		}
 
 		// 拆包完毕,已读一个完整的frame
-
 		byte[] frame = new byte[bytesToRead];
 		readBuf.get(frame);
-		readBuf = readBuf.resetBuf();
+		this.readBuf = readBuf.resetBuf();
 		return frame;
 
 	}
