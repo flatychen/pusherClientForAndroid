@@ -5,19 +5,32 @@ import android.net.wifi.WifiManager;
 import android.provider.Settings;
 import android.provider.Settings.Secure;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 
 public class DeviceUtil {
 
+	private static String TAG = "DeviceUtil";
+
 	public static String getImei(Context context) {
-		TelephonyManager tm = (TelephonyManager) context
-				.getSystemService(Context.TELEPHONY_SERVICE);
-		return tm.getDeviceId();
+		try {
+			TelephonyManager tm = (TelephonyManager) context
+					.getSystemService(Context.TELEPHONY_SERVICE);
+			return tm.getDeviceId();
+		} catch (Exception e) {
+			Log.w(TAG, e.getMessage());
+		}
+		return null;
 	}
 
 	public static String getMacAddress(Context context) {
-		WifiManager wm = (WifiManager) context
-				.getSystemService(Context.WIFI_SERVICE);
-		return wm.getConnectionInfo().getMacAddress();
+		try {
+			WifiManager wm = (WifiManager) context
+					.getSystemService(Context.WIFI_SERVICE);
+			return wm.getConnectionInfo().getMacAddress();
+		} catch (Exception e) {
+			Log.w(TAG, e.getMessage());
+		}
+		return null;
 	}
 
 	public static String getAndroidId(Context context) {
@@ -31,9 +44,8 @@ public class DeviceUtil {
 				.toString();
 	}
 
-	public static String getAndroidVersion(){
+	public static String getAndroidVersion() {
 		return android.os.Build.VERSION.RELEASE;
 	}
-	
-	
+
 }

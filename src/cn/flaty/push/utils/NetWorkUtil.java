@@ -5,9 +5,12 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.util.Log;
 
 public class NetWorkUtil {
 
+	private static String TAG = "NetWorkUtil";
+	
 	public static final String NETWORK_TYPE_WIFI = "wifi";
 	public static final String NETWORK_TYPE_3G = "eg";
 	public static final String NETWORK_TYPE_4G = "4g";
@@ -16,13 +19,32 @@ public class NetWorkUtil {
 	public static final String NETWORK_TYPE_UNKNOWN = "unknown";
 	public static final String NETWORK_TYPE_DISCONNECT = "disconnect";
 
-	public static String getNetWorkType(Context context) {
+	
+	
+	private static ConnectivityManager getConnectityManager(Context context){
 		ConnectivityManager manager = (ConnectivityManager) context
 				.getSystemService(Context.CONNECTIVITY_SERVICE);
-		NetworkInfo networkInfo;
+		return manager;
+	}
+	
+	
+	private static NetworkInfo getNetworkInfo(Context context){
+		NetworkInfo networkInfo = null;
+		try {
+			networkInfo = getConnectityManager(context).getActiveNetworkInfo();
+		} catch (Exception e) {
+			Log.w(TAG, e.getMessage());
+			return null;
+		}
+		return networkInfo;
+	}
+	
+	
+	public static String getNetWorkType(Context context) {
+		
+		NetworkInfo networkInfo = getNetworkInfo(context);
 		String type = NETWORK_TYPE_DISCONNECT;
-		if (manager == null
-				|| (networkInfo = manager.getActiveNetworkInfo()) == null) {
+		if (networkInfo == null) {
 			return type;
 		}
 
