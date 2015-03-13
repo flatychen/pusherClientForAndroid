@@ -1,4 +1,4 @@
-package cn.flaty.push.services;
+package cn.flaty.push.core;
 
 import java.text.MessageFormat;
 import java.util.concurrent.ExecutorService;
@@ -8,12 +8,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.json.JSONObject;
-import org.json.JSONStringer;
-
-import com.alibaba.fastjson.JSON;
-
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.util.Log;
 import cn.flaty.push.entity.ClientInfo;
 import cn.flaty.push.entity.GenericMessage;
@@ -28,9 +24,13 @@ import cn.flaty.push.utils.DigestUtils;
 import cn.flaty.push.utils.NetWorkUtil;
 import cn.flaty.push.utils.PackageUtils;
 
+import com.alibaba.fastjson.JSON;
+
 public abstract class MessageSupport implements Receiveable {
 
-	protected Context applicationContext;
+	private static volatile ClientInfo clientInfo;
+
+	public static Context applicationContext;
 
 	private static String TAG = "MessageSupport";
 
@@ -52,10 +52,11 @@ public abstract class MessageSupport implements Receiveable {
 
 	public MessageSupport(Context applicationContext) {
 		super();
-		this.applicationContext = applicationContext;
+		MessageSupport.applicationContext = applicationContext;
 		this.es = Executors.newFixedThreadPool(1);
 	}
 
+	@Deprecated
 	private void heartBeat() {
 		ses = Executors.newScheduledThreadPool(1);
 		ses.scheduleWithFixedDelay(new Runnable() {
@@ -66,7 +67,8 @@ public abstract class MessageSupport implements Receiveable {
 				Log.i(TAG, "心跳");
 				ci.setDid(DigestUtils.md5(DeviceUtil
 						.getMixDeviceId(applicationContext)));
-				readWriteHandler.doWrite(GenericMessage.client_heart+JSON.toJSONString(ci));
+				readWriteHandler.doWrite(GenericMessage.client_heart
+						+ JSON.toJSONString(ci));
 			}
 		}, HEART_BEAT_DEPLAY, HEART_BEAT_TIME, TimeUnit.SECONDS);
 	}
@@ -82,9 +84,6 @@ public abstract class MessageSupport implements Receiveable {
 
 	private void connect0(final String host, final int port) {
 		this.connCount = new AtomicInteger(0);
-
-		Log.i(TAG, this.toString());
-
 		this.readWriteHandler = ReadWriteHandler.getInstance(this);
 		readWriteHandler.InitEventLoop(host, port);
 		readWriteHandler.setAfterConnectListener(simpleAfterConnectListener);
@@ -96,19 +95,34 @@ public abstract class MessageSupport implements Receiveable {
 
 	}
 
-	private String prepareDeviceInfo() {
-		ClientInfo ci = new ClientInfo();
-		ci.setDid(DigestUtils.md5(DeviceUtil.getMixDeviceId(applicationContext)));
-		ci.setAppVer(PackageUtils.getAppVersionCode(applicationContext));
-		ci.setOs(DeviceUtil.getAndroidVersion());
-		return GenericMessage.client_connected + JSON.toJSONString(ci);
+	private static String prepareDeviceInfo() {
+		if (clientInfo == null) {
+			clientInfo = new ClientInfo();
+			try {
+				String appKey = (String) applicationContext.getPackageManager()
+						.getApplicationInfo(
+								applicationContext.getPackageName(),
+								PackageManager.GET_META_DATA).metaData
+						.get(ClientInfo.APPKEY);
+				clientInfo.setAppKey(appKey);
+				clientInfo.setDid(DigestUtils.md5(DeviceUtil
+						.getMixDeviceId(applicationContext)));
+				clientInfo.setAppVer(PackageUtils
+						.getAppVersionCode(applicationContext));
+				clientInfo.setOs(DeviceUtil.getAndroidVersion());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+		}
+		return GenericMessage.client_connected + JSON.toJSONString(clientInfo);
+
 	}
 
 	private AfterConnectListener simpleAfterConnectListener = new AfterConnectListener() {
 		@Override
 		public void success() {
 			readWriteHandler.doWrite(prepareDeviceInfo());
-			heartBeat();
 		}
 
 		@Override

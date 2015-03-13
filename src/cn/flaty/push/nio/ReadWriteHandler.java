@@ -13,13 +13,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import android.util.Log;
+import cn.flaty.push.core.Receiveable;
 import cn.flaty.push.nio.ConnectHandler.AfterConnectListener;
 import cn.flaty.push.nio.SimpleEventLoop.STATE;
 import cn.flaty.push.pushFrame.FrameHead;
 import cn.flaty.push.pushFrame.SimplePushHead;
 import cn.flaty.push.pushFrame.SimplePushInFrame;
 import cn.flaty.push.pushFrame.SimplePushOutFrame;
-import cn.flaty.push.services.Receiveable;
 import cn.flaty.push.utils.ByteBufUtil;
 
 public class ReadWriteHandler implements Callable<Integer> {
@@ -286,7 +286,6 @@ public class ReadWriteHandler implements Callable<Integer> {
 
 	public static interface ChannelReadListener {
 		void success();
-
 		void fail();
 	}
 
@@ -297,7 +296,7 @@ public class ReadWriteHandler implements Callable<Integer> {
 	}
 
 	@Override
-	public Integer call() throws Exception {
+	public Integer call(){
 		try {
 			Thread.currentThread().setName("push-nio");
 			eventLoop.openChannel();

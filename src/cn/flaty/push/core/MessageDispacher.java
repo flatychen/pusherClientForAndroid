@@ -1,4 +1,4 @@
-package cn.flaty.push.services;
+package cn.flaty.push.core;
 
 import java.util.Calendar;
 

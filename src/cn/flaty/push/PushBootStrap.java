@@ -2,8 +2,8 @@ package cn.flaty.push;
 
 import android.content.Context;
 import android.content.Intent;
-import cn.flaty.push.services.MessageDispacher;
-import cn.flaty.push.services.MessageService;
+import cn.flaty.push.core.MessageDispacher;
+import cn.flaty.push.core.MessageService;
 import cn.flaty.push.utils.ServiceUtil;
 
 /**

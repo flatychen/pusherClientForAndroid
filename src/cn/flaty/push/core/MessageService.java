@@ -1,4 +1,4 @@
-package cn.flaty.push.services;
+package cn.flaty.push.core;
 
 import android.app.IntentService;
 import android.content.Intent;
@@ -9,8 +9,6 @@ public class MessageService extends IntentService {
 
 	private static String TAG = "MessageService";
 
-
-
 	public MessageService() {
 		super("MessageService");
 	}
@@ -18,7 +16,8 @@ public class MessageService extends IntentService {
 	@Override
 	protected void onHandleIntent(Intent intent) {
 		Log.i(TAG, "后台service启动");
-		MessageDispacher.getInstance(this.getApplicationContext()).connect(PushBootStrap.host, PushBootStrap.port);
+		MessageDispacher.getInstance(this.getApplicationContext()).connect(
+				PushBootStrap.host, PushBootStrap.port);
 	}
 
 	@Override
@@ -26,5 +25,6 @@ public class MessageService extends IntentService {
 		flags = START_STICKY;
 		return super.onStartCommand(intent, flags, startId);
 	}
+
 
 }

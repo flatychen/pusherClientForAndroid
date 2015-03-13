@@ -1,6 +1,19 @@
 package cn.flaty.push.entity;
 
+
 public class ClientInfo {
+	
+	public static String APPKEY = "APPKEY";
+	
+	private String appKey;
+
+	public String getAppKey() {
+		return appKey;
+	}
+
+	public void setAppKey(String appKey) {
+		this.appKey = appKey;
+	}
 
 	private String did;
 
@@ -48,5 +61,7 @@ public class ClientInfo {
 		sb.append("}");
 		return sb.toString();
 	}
+	
+	
 	
 }
