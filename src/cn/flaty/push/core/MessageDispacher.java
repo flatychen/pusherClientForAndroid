@@ -2,17 +2,15 @@ package cn.flaty.push.core;
 
 import java.util.Calendar;
 
-import com.alibaba.fastjson.JSON;
-
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.graphics.BitmapFactory;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import cn.flaty.push.R;
 import cn.flaty.push.entity.GenericMessage;
 import cn.flaty.push.entity.PushMessage;
+
+import com.alibaba.fastjson.JSON;
 
 public final class MessageDispacher extends MessageSupport implements
 		Receiveable {
@@ -61,7 +59,7 @@ public final class MessageDispacher extends MessageSupport implements
 	private Notification bulidPictureNotification(String message) {
 		PushMessage pushMessage = JSON.parseObject(message, PushMessage.class);
 		NotificationCompat.BigPictureStyle style = new NotificationCompat.BigPictureStyle();
-		style.bigPicture(BitmapFactory.decodeResource(super.applicationContext.getResources(), R.drawable.logo));
+		//style.bigPicture(BitmapFactory.decodeResource(super.applicationContext.getResources(), R.drawable.logo));
 
 		NotificationCompat.Builder build = new NotificationCompat.Builder(
 				applicationContext);

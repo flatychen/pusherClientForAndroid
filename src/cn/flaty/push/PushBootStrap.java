@@ -16,13 +16,13 @@ public class PushBootStrap {
 	
 	private Context applicationContext = null;
 
-	public static final String host = "192.183.3.178";
+	public static final String host = "192.168.0.10";
 
 	public static final int port = 11111;
 
 	private static String TAG = "PushBootStrap";
 
-	private static final String serviceName = "cn.flaty.services.MessageService";
+	private static final String serviceName = "cn.flaty.push.core.MessageService";
 
 	private static volatile PushBootStrap push;
 
@@ -51,13 +51,13 @@ public class PushBootStrap {
 	private void connServer() {
 
 //		// 检测是否启动
-//		if (this.checkServiceIsRunning()) {
-//			MessageDispacher.getInstance(applicationContext).connect(PushBootStrap.host,
-//					PushBootStrap.port);
-//		} else {
+		if (this.checkServiceIsRunning()) {
+			MessageDispacher.getInstance(applicationContext).connect(PushBootStrap.host,
+					PushBootStrap.port);
+		} else {
 			Intent intent = new Intent(applicationContext, MessageService.class);
 			applicationContext.startService(intent);
-//		}
+		}
 	}
 
 	private boolean checkServiceIsRunning() {

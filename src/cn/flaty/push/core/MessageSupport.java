@@ -123,6 +123,7 @@ public abstract class MessageSupport implements Receiveable {
 		@Override
 		public void success() {
 			readWriteHandler.doWrite(prepareDeviceInfo());
+			heartBeat();
 		}
 
 		@Override
